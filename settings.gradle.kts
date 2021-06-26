@@ -1,1 +1,1 @@
-rootProject.name = "Mock-Server"
+rootProject.name = "kotlin-webflux-mock"

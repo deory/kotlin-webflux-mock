@@ -1,5 +1,6 @@
 package com.deory.mockserver.handler
 
+import com.deory.mockserver.domain.Primitive
 import org.springframework.http.MediaType
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
@@ -23,13 +24,18 @@ class ScsHandler {
         return Mono.just(req)
             .map { it.queryParam("delay").orElseGet { "0" } }
             .flatMap {
-                Flux.interval(Duration.ofMillis(it.toLong()))
-                    .take(1L)
-                    .flatMap { created(URI("/"))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .body(req.bodyToMono(String::class.java), String::class.java)
-                    }
-                    .toMono()
+                Flux.interval(Duration.ofMillis(it.toLong())).take(1L).toMono()
+            }
+            .flatMap {
+                req.bodyToMono(Primitive::class.java)
+                    .map { it.toResponsePrimitive(2001, "created") }
+            }
+            .flatMap {
+                 created(URI("/"))
+                     .contentType(MediaType.APPLICATION_JSON)
+                     .header("X-M2M-RSC", "2001")
+                     .header("X-M2M-RSM", "created")
+                     .body(Mono.just(it), Primitive::class.java)
             }
             .doOnNext { successCount.incrementAndGet() }
             .doOnError { failCount.incrementAndGet() }
